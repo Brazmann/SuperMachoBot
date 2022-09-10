@@ -10,6 +10,3 @@
     A Discord bot I made for fun with DSharpPlus! Includes D&D stat rolling, an economy system, and other cool stuff!
   </p>
 </div>
-
-# Usage
-Specify your bot token and discord User ID in config.json and run!
