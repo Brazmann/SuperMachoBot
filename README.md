@@ -13,7 +13,7 @@
 
 ## Features
 - D&D stat rolling
-- Economy system with a dynamic database (No SQL or MongoDB)
+- Economy system with a dynamic database (No SQL or similar database systems)
 - Gambling
 - Whatever I decide to experiment with adding
 
