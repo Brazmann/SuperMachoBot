@@ -9,11 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.3.0-nightly-01146" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.2.0-nightly-01091" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.2.0-nightly-01091" />
-    <PackageReference Include="DSharpPlus.Lavalink" Version="4.3.0-nightly-01146" />
-    <PackageReference Include="DSharpPlus.SlashCommands" Version="4.3.0-nightly-01146" />
+    <PackageReference Include="DSharpPlus" Version="4.3.0-nightly-01171" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.3.0-nightly-01171" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="4.3.0-nightly-01171" />
+    <PackageReference Include="DSharpPlus.Lavalink" Version="4.3.0-nightly-01171" />
+    <PackageReference Include="DSharpPlus.SlashCommands" Version="4.3.0-nightly-01171" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta2" />
 	<Protobuf Include="**/*.proto" />
   </ItemGroup>

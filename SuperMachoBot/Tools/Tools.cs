@@ -48,4 +48,9 @@ namespace SuperMachoBot.Tools
     {
 
     }
+
+    class FunDatabase
+    {
+
+    }
 }

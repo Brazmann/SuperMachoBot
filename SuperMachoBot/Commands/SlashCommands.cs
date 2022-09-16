@@ -86,6 +86,23 @@ namespace SuperMachoBot.Commands
             };
             await ctx.CreateResponseAsync(embed);
         }
+
+        [SlashCommand("UserList", "Stores all members in this server as a list.")]
+        public async Task UserListing(InteractionContext ctx)
+        {
+            try{
+            var members = ctx.Guild.GetAllMembersAsync().Result;
+            Console.WriteLine("Obtained list");
+            foreach (var member in members)
+            {
+                Console.WriteLine(member.Username);
+            }
+            } catch (Exception ex)
+            {
+                await ctx.CreateResponseAsync(ex.Message.ToString());
+            }
+            await ctx.CreateResponseAsync("bruh");
+        }
         #endregion
         #region Economy Commands
         [SlashCommand("Balance", "Checks your balance")]
