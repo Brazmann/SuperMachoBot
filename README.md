@@ -7,9 +7,15 @@
 <h3 align="center">SuperMachoBot</h3>
 
   <p align="center">
-    A Discord bot I made for fun with DSharpPlus! Includes D&D stat rolling, an economy system, and other cool stuff!
+    A Discord bot I made for fun with C#!
   </p>
 </div>
 
-# Usage
-Specify your bot token and discord User ID in config.json and run!
+## Features
+- D&D stat rolling
+- Economy system with a dynamic database (No SQL or similar database systems)
+- Gambling
+- Whatever I decide to experiment with adding
+
+## Installation
+Download the latest binaries from the [Releases page](https://github.com/Brazmann/SuperMachoBot/releases/latest) or compile it with `dotnet build`.
