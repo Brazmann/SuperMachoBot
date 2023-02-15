@@ -1,193 +1,189 @@
-using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Newtonsoft.Json;
-using System.Text;
 
 namespace SuperMachoBot.Commands
 {
-    public class SlashCommands : ApplicationCommandModule
+    public class EconomyCommands : ApplicationCommandModule
     {
-        public static string rootPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        #region General Commands
-        [SlashCommand("Avatar", "Gets high resolution avatar of specified user.")]
-        public async Task AvatarCommand(InteractionContext ctx, [Option("user", "Discord user to grab avatar from")] DiscordUser du)
-        {
-            var color = new DiscordColor(2, 200, 2);
-            var embed = new DiscordEmbedBuilder
-            {
-                Title = du.Username,
-                Color = color,
-                ImageUrl = Tools.General.AvatarParser(du)
-            };
-            await ctx.CreateResponseAsync(embed);
-        }
+        public static string jsonPath = "";
 
-        Random rnd = new Random();
-        [SlashCommand("StatRoller", "Rolls character stats for d&d 5e using the 4d6k3 calculation")]
-        public async Task StatRollerCommand(InteractionContext ctx)
-        {
-            int[] stats = { StatRoller(), StatRoller(), StatRoller(), StatRoller(), StatRoller(), StatRoller() };
-            await ctx.CreateResponseAsync($"{stats[0]}\n{stats[1]}\n{stats[2]}\n{stats[3]}\n{stats[4]}\n{stats[5]}");
-        }
-        public int StatRoller()
-        {
-            int[] rolls = { rnd.Next(1, 7), rnd.Next(1, 7), rnd.Next(1, 7), rnd.Next(1, 7) };
-            int result = rolls[0] + rolls[1] + rolls[2] + rolls[3] - rolls.Min();
-            return result;
-        }
 
-        [SlashCommand("EmbedTest", "Tests discord embed feature lol")]
-        public async Task DebugEmbedCommand(InteractionContext ctx)
+        #region Economy Commands
+
+        [SlashCommand("Shutdown", "Kills the SuperMachoBot with a password.")]
+        public async Task EconTestCommand(InteractionContext ctx, [Option("Password", "Enter it.")] string pass)
         {
-            var color = new DiscordColor(200, 2, 2);
-            var embed = new DiscordEmbedBuilder
+            string shutdownPass = "TRUTH HAD GONE, TRUTH HAD GONE, AND TRUTH HAD GONE. AH, NOW TRUTH IS ASLEEP IN THE DARKNESS OF THE SINISTER HAND.";
+            if (pass == shutdownPass)
             {
-                Title = "bruh",
-                Description = "bruh",
-                Color = color
-            };
-            await ctx.CreateResponseAsync(embed);
-        }
-        [SlashCommand("Banner", "Gets the banner of the current server.")]
-        public async Task GuildBannerCommand(InteractionContext ctx)
-        {
-            var bannerUrl = ctx.Guild.BannerUrl;
-            if (bannerUrl == null)
-            {
-                await ctx.CreateResponseAsync("Error! Current server does not have a banner!");
+                await ctx.CreateResponseAsync("Shutting down. Thanks.");
+                System.Environment.Exit(0);
             }
             else
             {
-                var embed = new DiscordEmbedBuilder
-                {
-                    ImageUrl = bannerUrl
-                };
-                await ctx.CreateResponseAsync(embed);
+                await ctx.CreateResponseAsync("Wrong password! Try again! :P");
             }
         }
 
-        [SlashCommand("UserInfo", "Gets info from user")]
-        public async Task UserInfoCommand(InteractionContext ctx, [Option("user", "Discord user to grab info from")] DiscordUser du)
+        public void CreateEconomyEntry(ulong userid, UserData data, ulong guildid)
         {
-            var hashcode = du.GetHashCode();
-            string[] Info =
-            {
-                $"**Account Creation Date:** {du.CreationTimestamp}",
-                $"**Account ID:** {du.Id}",
-                $"**User Language:** (Currently not functional)",
-                $"**Is Bot?** {du.IsBot}",
-                $"**Is Discord Admin?:** {du.IsSystem}"
-            };
-            var embed = new DiscordEmbedBuilder
-            {
-                Title = $"{du.Username}#{du.Discriminator}",
-                Description = $"{Info[0]} \n {Info[1]} \n {Info[2]} \n {Info[3]} \n {Info[4]}",
-                ImageUrl = Tools.General.AvatarParser(du)
-            };
-            await ctx.CreateResponseAsync(embed);
+            // Add a new entry to the dictionary
+            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+
+            ulong newUserId = userid;
+
+            Dictionary<ulong, UserData> userDataDict;
+
+            string json = File.ReadAllText(jsonFilePath);
+            userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
+
+            userDataDict.Add(newUserId, data);
+
+            // Serialize the updated data and write it back to the file
+            string newJson = JsonConvert.SerializeObject(userDataDict, Formatting.Indented);
+            File.WriteAllText(jsonFilePath, newJson);
         }
 
-        [SlashCommand("Testing", "Tests.")]
-        public async Task TestingCommand(InteractionContext ctx)
+        public void CreateEconomyFile(ulong initialUserID, UserData initialUserData, ulong guildid)
+        {
+            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            var dataDict = new Dictionary<ulong, UserData>();
+            dataDict.Add(initialUserID, initialUserData);
+            string newJson = JsonConvert.SerializeObject(dataDict, Formatting.Indented);
+            File.WriteAllText(jsonFilePath, newJson);
+        }
+
+        public UserData GetEconomyEntry(ulong userid, ulong guildid)
+        {
+            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            // Read the JSON file and deserialize it into a dictionary
+            if (!File.Exists(jsonFilePath))
+            {
+                File.Create(jsonFilePath).Close();
+            }
+            Dictionary<ulong, UserData> userDataDict;
+
+            string json = File.ReadAllText(jsonFilePath);
+            userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
+
+            if (userDataDict == null)
+            {
+                CreateEconomyFile(userid, new UserData { money = 0, lastDaily = 0 }, guildid);
+                return null;
+            }
+            else if (userDataDict.ContainsKey(userid))
+            {
+                UserData userData = userDataDict[userid];
+                var money = userData.money;
+                var lastDaily = userData.lastDaily;
+                return userData;
+            }
+            else
+            {
+                var data = new UserData
+                {
+                    money = 0,
+                    lastDaily = 0
+                };
+                CreateEconomyEntry(userid, data, guildid);
+                return null;
+            }
+        }
+
+        public void EditEconomyEntry(ulong userid, UserData data, ulong guildid)
+        {
+            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string json = File.ReadAllText(jsonFilePath);
+            var userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
+
+            if (userDataDict.ContainsKey(userid))
+            {
+                UserData userData = userDataDict[userid];
+                userData.money = data.money; // Update the money field
+                userData.lastDaily = data.lastDaily; // Update the timestamp field
+            }
+
+            // Serialize the updated data and write it back to the file
+            string newJson = JsonConvert.SerializeObject(userDataDict, Formatting.Indented);
+            File.WriteAllText(jsonFilePath, newJson);
+        }
+
+
+
+        [SlashCommand("Balance", "Check users balance")]
+        public async Task BalanceCommand(InteractionContext ctx, [Option("User", "User to check balance of")] DiscordUser du)
+        {
+            // Access the data using the userid key
+            ulong userid = du.Id;
+            UserData userData = GetEconomyEntry(userid, ctx.Guild.Id);
+            if (userData != null)
+            {
+                var money = userData.money;
+                var lastDaily = userData.lastDaily;
+                await ctx.CreateResponseAsync($"{du.Username}#{du.Discriminator}:{money}$ Last claimed daily:(Unix){lastDaily}");
+            }
+            else //TODO: Fix bug which causes the response after new entry creation to not be sent, requiring the user to query again to see their balance.
+            {
+                await ctx.CreateResponseAsync($"No entry found! Creating new one....");
+                Thread.Sleep(1000);
+                var newData = GetEconomyEntry(userid, ctx.Guild.Id);
+                var money = newData.money;
+                var lastDaily = newData.lastDaily;
+                await ctx.CreateResponseAsync($"{du.Username}#{du.Discriminator}:{money}$ Last claimed daily:(Unix){lastDaily}");
+            }
+        }
+
+        [SlashCommand("Transfer", "Transfer your money to another user")]
+        public async Task EconTransferCommand(InteractionContext ctx, [Option("Amount", "Amount to transfer")] long amount, [Option("User", "User to transfer money to")] DiscordUser du)
         {
             try
             {
-            int[] row1 = new int[6] { 0, 0, 0, 0, 0, 0 }; //row = Y axis, entries within array = X axis. 0 = empty, 1 = player.
-            StringBuilder sb = new StringBuilder("", row1.Length);
-            var path = @$"{rootPath}\FunDatabase\MapTest\{ctx.User.Id}.json";
-
-            if (File.Exists(path) == false)
-            {
-                List<PlayerData> playerData = new List<PlayerData>();
-
-                playerData.Add(new PlayerData()
+                var guildid = ctx.Guild.Id;
+                var origGiver = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
+                var origTarget = GetEconomyEntry(du.Id, ctx.Guild.Id);
+                if (origGiver.money < amount)
                 {
-                    CoordinateY = 1,
-                    CoordinateX = 4
-                });
-                string json = JsonConvert.SerializeObject(playerData.ToArray());
-
-                File.AppendAllText(path, json);
-            }
-            string playerDataJson = File.ReadAllText(path);
-
-            var playerDataParsed = JsonConvert.DeserializeObject<List<PlayerData>>(playerDataJson);
-
-
-            for (int i = 0; i < row1.Length; i++)
-            {
-                if (i == playerDataParsed[0].CoordinateX)
+                    await ctx.CreateResponseAsync($"{ctx.User.Username}, YOU CANNOT AFFORD!!");
+                }
+                else if (amount == 0)
                 {
-                    sb.Append(":person_in_motorized_wheelchair:");
+                    await ctx.CreateResponseAsync($"{ctx.User.Username} transferred.... 0$ to {du.Username}. What a waste of time.");
+                }
+                else if (amount < 0)
+                {
+                    await ctx.CreateResponseAsync($"Sorry, robbery has not been implemented yet {ctx.User.Username}!");
                 }
                 else
                 {
-                    switch (row1[i])
-                    {
-                        case 0:
-                            sb.Append(":eight_pointed_black_star:");
-                            break;
-                    }
+                    EditEconomyEntry(ctx.User.Id, new UserData { money = origGiver.money - amount, lastDaily = origGiver.lastDaily }, guildid);
+                    EditEconomyEntry(du.Id, new UserData { money = origTarget.money + amount, lastDaily = origTarget.lastDaily }, guildid);
+                    await ctx.CreateResponseAsync($"{ctx.User.Username} transferred {amount}$ to {du.Username}!");
                 }
             }
-
-            var builder = new DiscordMessageBuilder().WithContent(sb.ToString()).AddComponents(new DiscordComponent[]
+            catch (Exception e)
             {
-                    new DiscordButtonComponent(ButtonStyle.Primary, "1_left", "Left"),
-                        new DiscordButtonComponent(ButtonStyle.Secondary, "2_up", "Up"),
-                        new DiscordButtonComponent(ButtonStyle.Success, "3_down", "Down"),
-                        new DiscordButtonComponent(ButtonStyle.Danger, "4_right", "Right")
-            }).SendAsync(ctx.Channel);
-
-            ctx.Client.ComponentInteractionCreated += async (s, e) =>
-            {
-                Console.WriteLine("Ben?");
-                int playerY = playerDataParsed[0].CoordinateY;
-                int playerX = playerDataParsed[0].CoordinateX;
-                switch (e.Interaction.Data.CustomId)
-                {
-                    case "1_left":
-                        if(playerX > 0)
-                        {
-                            playerX = playerX - 1;
-                        }
-                        break;
-                    case "2_up":
-                        break;
-                    case "3_down":
-                        break;
-                    case "4_right":
-                        if(playerX < 5)
-                        {
-                            playerX++;
-                        }
-                        break;
-                }
-                Console.WriteLine($"playerX: {playerX} playerY: {playerY}");
-                await e.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder().WithContent(":thumbsup:"));
-
-                List<PlayerData> playerDataNew = new List<PlayerData>();
-
-                playerDataNew.Add(new PlayerData()
-                {
-                    CoordinateY = playerY,
-                    CoordinateX = playerX
-                });
-                string json = JsonConvert.SerializeObject(playerDataNew.ToArray());
-
-                File.WriteAllText(path, json);
-                TestingCommand(ctx);
-
-            };
-            } catch (Exception ex)
-            {
-               await ctx.CreateResponseAsync(ex.Message);
+                await ctx.CreateResponseAsync($"Error encountered! {e.Message}");
             }
         }
 
-        #endregion
-        #region Economy Commands
+        [SlashCommand("Betflip", "Bet your money on a coin flip!")]
+        public async Task BetFlipCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
+        {
+            Random rnd = new Random();
+
+            int result = rnd.Next(0, 2);
+            if (result == 0) //Heads
+            {
+
+            }
+            else if (result == 1) //Tails
+            {
+
+            }
+            await ctx.CreateResponseAsync("Gem.");
+        }
+
         /*[SlashCommand("Balance", "Checks your balance")]
         public async Task BalanceCommand(InteractionContext ctx, [Option("User", "User to check balance of")] DiscordUser du)
         {
@@ -495,20 +491,26 @@ namespace SuperMachoBot.Commands
         #endregion
     }
 
-    public class PlayerData
+    public class UserData
     {
-        public int CoordinateY;
-        public int CoordinateX;
+        public long money { get; set; }
+        public ulong lastDaily { get; set; }
     }
-    public class Entry
+
+    public class EconDatabaseNotFoundException : Exception
     {
-        [JsonProperty("userid")]
-        public string UserId { get; set; }
+        public EconDatabaseNotFoundException()
+        {
+        }
 
-        [JsonProperty("money")]
-        public string Money { get; set; }
+        public EconDatabaseNotFoundException(string message)
+            : base(message)
+        {
+        }
 
-        [JsonProperty("timesincelastdailyunixtimestamp")]
-        public string TimeSinceLastDailyUnixTimestamp { get; set; }
+        public EconDatabaseNotFoundException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
     }
 }

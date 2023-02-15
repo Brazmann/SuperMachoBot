@@ -3,6 +3,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.SlashCommands;
 using SuperMachoBot.Commands;
 using Newtonsoft.Json;
+using DSharpPlus.Entities;
 
 namespace SuperMachoBot
 {
@@ -11,6 +12,7 @@ namespace SuperMachoBot
         public static string rootPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         public static bool moneyCooldown = true;
         public static List<Config> configItems = new List<Config>();
+        public static DiscordClient discord;
         static void Main(string[] args)
         {
             MainAsync().GetAwaiter().GetResult();
@@ -23,7 +25,7 @@ namespace SuperMachoBot
                 string json = r.ReadToEnd();
                 configItems = JsonConvert.DeserializeObject<List<Config>>(json);
             }
-            var discord = new DiscordClient(new DiscordConfiguration()
+            discord = new DiscordClient(new DiscordConfiguration()
             {
                 Token = configItems[0].Token,
                 TokenType = TokenType.Bot
@@ -45,8 +47,11 @@ namespace SuperMachoBot
                 StringPrefixes = new[] { "tf" }
             });
 
+
             commands.RegisterCommands<GeneralCommands>();
             slash.RegisterCommands<SlashCommands>();
+            slash.RegisterCommands<EconomyCommands>();
+            EconomyCommands.jsonPath = @"C:\repos\bots\SuperMachoBot\Super-Macho-Bot\SuperMachoBot\EconomyDatabase\";
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
@@ -62,5 +67,6 @@ namespace SuperMachoBot
     {
         public string Token;
         public ulong OwnerID;
+        public string EconomyDatabasePath;
     }
 }
