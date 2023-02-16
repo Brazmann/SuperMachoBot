@@ -11,7 +11,7 @@ namespace SuperMachoBot.Commands
 
         #region Economy Commands
 
-        [SlashCommand("Shutdown", "Kills the SuperMachoBot with a password.")]
+        /*[SlashCommand("Shutdown", "Kills the SuperMachoBot with a password.")]
         public async Task EconTestCommand(InteractionContext ctx, [Option("Password", "Enter it.")] string pass)
         {
             string shutdownPass = "TRUTH HAD GONE, TRUTH HAD GONE, AND TRUTH HAD GONE. AH, NOW TRUTH IS ASLEEP IN THE DARKNESS OF THE SINISTER HAND.";
@@ -24,6 +24,14 @@ namespace SuperMachoBot.Commands
             {
                 await ctx.CreateResponseAsync("Wrong password! Try again! :P");
             }
+        }*/
+
+        public enum BetflipChoice
+        {
+            [ChoiceName("heads")]
+            heads,
+            [ChoiceName("tails")]
+            tails,
         }
 
         public void CreateEconomyEntry(ulong userid, UserData data, ulong guildid)
@@ -112,20 +120,24 @@ namespace SuperMachoBot.Commands
 
 
         [SlashCommand("Balance", "Check users balance")]
-        public async Task BalanceCommand(InteractionContext ctx, [Option("User", "User to check balance of")] DiscordUser du)
+        public async Task BalanceCommand(InteractionContext ctx, [Option("User", "User to check balance of")] DiscordUser du = null)
         {
             // Access the data using the userid key
+            if(du == null)
+            {
+                du = ctx.User;
+            }
             ulong userid = du.Id;
             UserData userData = GetEconomyEntry(userid, ctx.Guild.Id);
             if (userData != null)
             {
                 var money = userData.money;
                 var lastDaily = userData.lastDaily;
-                await ctx.CreateResponseAsync($"{du.Username}#{du.Discriminator}:{money}$ Last claimed daily:(Unix){lastDaily}");
+                await ctx.CreateResponseAsync($"{du.Username}: {money}$");
             }
             else //TODO: Fix bug which causes the response after new entry creation to not be sent, requiring the user to query again to see their balance.
             {
-                await ctx.CreateResponseAsync($"No entry found! Creating new one....");
+                await ctx.CreateResponseAsync($"No entry found! Creating new one. Please run this command again.");
                 Thread.Sleep(1000);
                 var newData = GetEconomyEntry(userid, ctx.Guild.Id);
                 var money = newData.money;
@@ -168,20 +180,115 @@ namespace SuperMachoBot.Commands
         }
 
         [SlashCommand("Betflip", "Bet your money on a coin flip!")]
-        public async Task BetFlipCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
+        public async Task BetFlipCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount, [Option("Choice", "Make your choice....")] BetflipChoice choice = BetflipChoice.heads)
         {
             Random rnd = new Random();
+            var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
+            if (entry == null)
+            {
+                entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id); //Get it again. Chud.
+            }
+            if(amount < 0)
+            {
+                await ctx.CreateResponseAsync($"Invalid amount!");
+            }
+            if(amount > entry.money)
+            {
+                await ctx.CreateResponseAsync($"Invalid amount!");
+            }
 
-            int result = rnd.Next(0, 2);
+            int result = rnd.Next(0, 2); //Could massively reduce the amount of lines below, but I want custom messages dependent on all the outcomes, so COPE.
             if (result == 0) //Heads
             {
-
+                if(choice == BetflipChoice.heads)
+                {
+                    EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + amount, lastDaily = entry.lastDaily}, ctx.Guild.Id);
+                    await ctx.CreateResponseAsync($"Heads! You win ${amount}!");
+                }
+                else
+                {
+                    EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money - amount, lastDaily = entry.lastDaily }, ctx.Guild.Id);
+                    await ctx.CreateResponseAsync($"Drat, heads! You lose ${amount}!");
+                }
             }
             else if (result == 1) //Tails
             {
-
+                if (choice == BetflipChoice.tails)
+                {
+                    EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + amount, lastDaily = entry.lastDaily }, ctx.Guild.Id);
+                    await ctx.CreateResponseAsync($"Tails! You win ${amount}!");
+                }
+                else
+                {
+                    EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money - amount, lastDaily = entry.lastDaily }, ctx.Guild.Id);
+                    await ctx.CreateResponseAsync($"Drat, tails! You lose ${amount}!");
+                }
             }
-            await ctx.CreateResponseAsync("Gem.");
+        }
+
+        [SlashCommand("Wheel", "Spin the wheel of CobFortune™")]
+        public async Task WheelCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
+        {
+            Random rnd = new Random();
+            var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
+            if(entry == null)
+            {
+                entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id); //Get it again. Chud.
+            }
+            var roll = rnd.Next(0, 7);
+            double multiplier = 1;
+            if (amount <= 0)
+            {
+                await ctx.CreateResponseAsync($"Invalid amount! Try again!");
+            } else if(entry.money < amount)
+            {
+                await ctx.CreateResponseAsync($"YOU CANNOT AFFORD! TRY AGAIN!");
+            }
+            switch (roll)
+            {
+                case 0:
+                    multiplier = -1.4;
+                    break;
+                case 1:
+                    multiplier = -0.8;
+                    break;
+                case 2:
+                    multiplier = -0.4;
+                    break;
+                case 3:
+                    multiplier = 1;
+                    break;
+                case 4:
+                    multiplier = 1.4;
+                    break;
+                case 5:
+                    multiplier = 1.8;
+                    break;
+                case 6:
+                    multiplier = 2.4;
+                    break;
+            }
+            var money = amount * multiplier - amount;
+            EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + (long)money, lastDaily = entry.lastDaily }, ctx.Guild.Id);
+            if(money < 0)
+            {
+                await ctx.CreateResponseAsync($"{ctx.User.Username} lost {money}$!");
+            }
+            await ctx.CreateResponseAsync($"{ctx.User.Username} gained {money}!");
+        }
+
+        [SlashCommand("Daily", "Claim your daily 100$!")]
+        public async Task DailyCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
+        {
+
+            var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
+            ulong time = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            if (time - entry.lastDaily > 86400)
+            {
+                EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + 100, lastDaily = time }, ctx.Guild.Id);
+                await ctx.CreateResponseAsync($"Daily claimed!");
+            }
+            await ctx.CreateResponseAsync($"Can't claim daily yet! Come back tomorrow, coalposter!");
         }
 
         /*[SlashCommand("Balance", "Checks your balance")]

@@ -1,8 +1,8 @@
-using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Newtonsoft.Json;
-using System.Text;
+using static System.Net.WebRequestMethods;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SuperMachoBot.Commands
 {
@@ -88,7 +88,18 @@ namespace SuperMachoBot.Commands
             await ctx.CreateResponseAsync(embed);
         }
 
-        [SlashCommand("Testing", "Tests.")]
+        [SlashCommand("EmbeddingTest", "Sends a placeholder embed for gemboard.")]
+        public async Task UserInfoCommand(InteractionContext ctx)
+        {
+            var bruhgimus = new DiscordEmbedBuilder { Title = $"GEM ALERT!",
+                Description = $@"""https://twitter.com/cametek/status/1626024042254962688?t=qO5w7KG_5pAO2fBc0D3zOg&s=19""" + "\n" + "", 
+                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://images-ext-2.discordapp.net/external/eF0rSZ4LMUqftzoQmSqKq9P4-nGoyU7W7G74KSnLSls/https/pbs.twimg.com/ext_tw_video_thumb/1626022911822934016/pu/img/7yXC_-9lc9dWtC07.jpg"},
+                Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = ctx.User.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = "TestUser#0000" },
+                Color = DiscordColor.Red }.AddField("Gem:", "[link](https://discord.com/channels/977270567881298021/977270567881298024/1075763823740461056)").Build();
+            await ctx.CreateResponseAsync(bruhgimus);
+        }
+
+        /*[SlashCommand("Testing", "Tests.")]
         public async Task TestingCommand(InteractionContext ctx)
         {
             try
@@ -184,7 +195,7 @@ namespace SuperMachoBot.Commands
             {
                await ctx.CreateResponseAsync(ex.Message);
             }
-        }
+        }*/
 
         #endregion
         #region Economy Commands
