@@ -1,0 +1,1 @@
+Fill in the data in configtemplate.json and rename it to just "config.json" and then build.
