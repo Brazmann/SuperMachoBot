@@ -351,3 +351,4 @@ MigrationBackup/
 
 # Discord server config
 **/Config/config.json
+/SuperMachoBot/EconomyDatabase/Pinned.txt
