@@ -119,6 +119,9 @@ namespace SuperMachoBot
             slash.RegisterCommands<EconomyCommands>();
             EconomyCommands.jsonPath = configItems[0].EconomyDatabasePath;
 
+            Console.WriteLine(EconomyCommands.jsonPath);
+            Console.WriteLine(pinnedPath);
+
             await discord.ConnectAsync();
             await Task.Delay(-1);
         }

@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="EconomyDatabase\977270567881298021.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Config\config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
