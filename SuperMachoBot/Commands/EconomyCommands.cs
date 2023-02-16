@@ -105,6 +105,11 @@ namespace SuperMachoBot.Commands
             string json = File.ReadAllText(jsonFilePath);
             var userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
 
+            if(data.money < 0) //Check to prevent balances from entering the negatives
+            {
+                data.money = 0;
+            }
+
             if (userDataDict.ContainsKey(userid))
             {
                 UserData userData = userDataDict[userid];
@@ -191,10 +196,12 @@ namespace SuperMachoBot.Commands
             if(amount < 0)
             {
                 await ctx.CreateResponseAsync($"Invalid amount!");
+                return;
             }
             if(amount > entry.money)
             {
                 await ctx.CreateResponseAsync($"Invalid amount!");
+                return;
             }
 
             int result = rnd.Next(0, 2); //Could massively reduce the amount of lines below, but I want custom messages dependent on all the outcomes, so COPE.
@@ -240,9 +247,11 @@ namespace SuperMachoBot.Commands
             if (amount <= 0)
             {
                 await ctx.CreateResponseAsync($"Invalid amount! Try again!");
+                return;
             } else if(entry.money < amount)
             {
                 await ctx.CreateResponseAsync($"YOU CANNOT AFFORD! TRY AGAIN!");
+                return;
             }
             switch (roll)
             {
@@ -272,9 +281,9 @@ namespace SuperMachoBot.Commands
             EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + (long)money, lastDaily = entry.lastDaily }, ctx.Guild.Id);
             if(money < 0)
             {
-                await ctx.CreateResponseAsync($"{ctx.User.Username} lost {money}$!");
+                await ctx.CreateResponseAsync($"{ctx.User.Username} lost {money}$ with multiplier {multiplier}!");
             }
-            await ctx.CreateResponseAsync($"{ctx.User.Username} gained {money}!");
+            await ctx.CreateResponseAsync($"{ctx.User.Username} gained {money}$ with multiplier {multiplier}!");
         }
 
         [SlashCommand("Daily", "Claim your daily 100$!")]
