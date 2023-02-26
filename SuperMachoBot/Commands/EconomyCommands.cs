@@ -203,6 +203,23 @@ namespace SuperMachoBot.Commands
                 await ctx.CreateResponseAsync($"Invalid amount!");
                 return;
             }
+            var headEmbed = new DiscordEmbedBuilder
+            {
+                Title = $"Heads!",
+                Description = "",
+                ImageUrl = "https://cdn.discordapp.com/attachments/977270567881298024/1079241412811423744/domcoinheads.png",
+                Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = ctx.User.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"final balance" },
+                Color = DiscordColor.Black
+            };
+
+            var tailEmbed = new DiscordEmbedBuilder
+            {
+                Title = $"Tails!",
+                Description = "",
+                ImageUrl = "https://cdn.discordapp.com/attachments/977270567881298024/1079241395161800854/domcointails.png",
+                Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = ctx.User.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"final balance" },
+                Color = DiscordColor.Black
+            };
 
             int result = rnd.Next(0, 2); //Could massively reduce the amount of lines below, but I want custom messages dependent on all the outcomes, so COPE.
             if (result == 0) //Heads
@@ -210,12 +227,18 @@ namespace SuperMachoBot.Commands
                 if(choice == BetflipChoice.heads)
                 {
                     EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + amount, lastDaily = entry.lastDaily}, ctx.Guild.Id);
-                    await ctx.CreateResponseAsync($"Heads! You win ${amount}!");
+                    headEmbed.Description = $"Yipee! You win ${amount}!";
+                    headEmbed.Footer.Text = $"Resulting balance: ${entry.money + amount}";
+                    headEmbed.Build();
+                    await ctx.CreateResponseAsync(headEmbed);
                 }
                 else
                 {
                     EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money - amount, lastDaily = entry.lastDaily }, ctx.Guild.Id);
-                    await ctx.CreateResponseAsync($"Drat, heads! You lose ${amount}!");
+                    headEmbed.Description = $"Drat! You lose ${amount}!";
+                    headEmbed.Footer.Text = $"Remaining balance: ${entry.money - amount}";
+                    headEmbed.Build();
+                    await ctx.CreateResponseAsync(headEmbed);
                 }
             }
             else if (result == 1) //Tails
@@ -223,12 +246,18 @@ namespace SuperMachoBot.Commands
                 if (choice == BetflipChoice.tails)
                 {
                     EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + amount, lastDaily = entry.lastDaily }, ctx.Guild.Id);
-                    await ctx.CreateResponseAsync($"Tails! You win ${amount}!");
+                    tailEmbed.Description = $"Yipee! You win ${amount}";
+                    tailEmbed.Footer.Text = $"Resulting balance: ${entry.money + amount}";
+                    tailEmbed.Build();
+                    await ctx.CreateResponseAsync(tailEmbed);
                 }
                 else
                 {
                     EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money - amount, lastDaily = entry.lastDaily }, ctx.Guild.Id);
-                    await ctx.CreateResponseAsync($"Drat, tails! You lose ${amount}!");
+                    tailEmbed.Description = $"Drat! You lose ${amount}!";
+                    tailEmbed.Footer.Text = $"Remaining balance: ${entry.money - amount}";
+                    tailEmbed.Build();
+                    await ctx.CreateResponseAsync(tailEmbed);
                 }
             }
         }
@@ -287,10 +316,14 @@ namespace SuperMachoBot.Commands
         }
 
         [SlashCommand("Daily", "Claim your daily 100$!")]
-        public async Task DailyCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
+        public async Task DailyCommand(InteractionContext ctx)
         {
 
             var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
+            if(entry == null)
+            {
+                entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id); //get it again, chud.
+            }
             ulong time = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             if (time - entry.lastDaily > 86400)
             {
