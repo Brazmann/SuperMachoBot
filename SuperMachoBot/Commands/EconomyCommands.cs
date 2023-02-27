@@ -99,6 +99,26 @@ namespace SuperMachoBot.Commands
             }
         }
 
+        public Dictionary<ulong, UserData> GetEconomyEntries(ulong guildid)
+        {
+            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            // Read the JSON file and deserialize it into a dictionary
+            if (!File.Exists(jsonFilePath))
+            {
+                throw new EconDatabaseNotFoundException("Could not find guild economy database file!");
+            }
+            Dictionary<ulong, UserData> userDataDict;
+
+            string json = File.ReadAllText(jsonFilePath);
+            userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
+
+            if (userDataDict == null)
+            {
+                throw new EconDatabaseNotFoundException("Invalid economy database data!");
+            }
+            return userDataDict;
+        }
+
         public void EditEconomyEntry(ulong userid, UserData data, ulong guildid)
         {
             string jsonFilePath = @$"{jsonPath}{guildid}.json";
@@ -138,7 +158,7 @@ namespace SuperMachoBot.Commands
             {
                 var money = userData.money;
                 var lastDaily = userData.lastDaily;
-                await ctx.CreateResponseAsync($"{du.Username}: {money}$");
+                await ctx.CreateResponseAsync($"{du.Username}: ${money}");
             }
             else //TODO: Fix bug which causes the response after new entry creation to not be sent, requiring the user to query again to see their balance.
             {
@@ -147,8 +167,33 @@ namespace SuperMachoBot.Commands
                 var newData = GetEconomyEntry(userid, ctx.Guild.Id);
                 var money = newData.money;
                 var lastDaily = newData.lastDaily;
-                await ctx.CreateResponseAsync($"{du.Username}#{du.Discriminator}:{money}$ Last claimed daily:(Unix){lastDaily}");
+                await ctx.CreateResponseAsync($"{du.Username}#{du.Discriminator}:${money} Last claimed daily:(Unix){lastDaily}");
             }
+        }
+
+        [SlashCommand("Baltop", "Shows leaderboard for top users by current balance")]
+        public async Task BaltopCommand(InteractionContext ctx)
+        {
+            var dataDic = GetEconomyEntries(ctx.Guild.Id);
+            if (dataDic != null) //Note: It should never return null, but I'm checking for futureproofing
+            {
+                var sortedDict = dataDic.OrderByDescending(pair => pair.Value.money).Take(20).ToDictionary(pair => pair.Key, pair => pair.Value);
+                Console.WriteLine(sortedDict.FirstOrDefault().Key);
+                string output = "";
+                int count = 0;
+                foreach (var pair in sortedDict) //TODO: Modify user data to contain their username, so it doesn't have to make an expensive GetUserAsync call every time.
+                {
+                    var username = Program.discord.GetUserAsync(pair.Key);
+                    if(username == null)
+                    {
+                        await ctx.CreateResponseAsync("Encountered an non-existent user! What the fuck!?");
+                    }
+                    count++;
+                    output += $"{count}.{username.Result.Username}: ${pair.Value.money}\n";
+                }
+                await ctx.CreateResponseAsync(output);
+            }
+            await ctx.CreateResponseAsync("Failure!");
         }
 
         [SlashCommand("Transfer", "Transfer your money to another user")]
@@ -165,7 +210,7 @@ namespace SuperMachoBot.Commands
                 }
                 else if (amount == 0)
                 {
-                    await ctx.CreateResponseAsync($"{ctx.User.Username} transferred.... 0$ to {du.Username}. What a waste of time.");
+                    await ctx.CreateResponseAsync($"{ctx.User.Username} transferred.... $0 to {du.Username}. What a waste of time.");
                 }
                 else if (amount < 0)
                 {
@@ -310,12 +355,12 @@ namespace SuperMachoBot.Commands
             EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + (long)money, lastDaily = entry.lastDaily }, ctx.Guild.Id);
             if(money < 0)
             {
-                await ctx.CreateResponseAsync($"{ctx.User.Username} lost {money}$ with multiplier {multiplier}!");
+                await ctx.CreateResponseAsync($"{ctx.User.Username} lost ${money} with multiplier {multiplier}!");
             }
-            await ctx.CreateResponseAsync($"{ctx.User.Username} gained {money}$ with multiplier {multiplier}!");
+            await ctx.CreateResponseAsync($"{ctx.User.Username} gained ${money} with multiplier {multiplier}!");
         }
 
-        [SlashCommand("Daily", "Claim your daily 100$!")]
+        [SlashCommand("Daily", "Claim your daily $100!")]
         public async Task DailyCommand(InteractionContext ctx)
         {
 
@@ -325,12 +370,18 @@ namespace SuperMachoBot.Commands
                 entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id); //get it again, chud.
             }
             ulong time = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            if (time - entry.lastDaily > 86400)
+            ulong secondsSinceDaily = time - entry.lastDaily;
+            if (secondsSinceDaily > 86400)
             {
                 EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + 100, lastDaily = time }, ctx.Guild.Id);
                 await ctx.CreateResponseAsync($"Daily claimed!");
+            } else
+            {
+                float remainingSeconds = 86400 - secondsSinceDaily;
+                float remainingHours = remainingSeconds / 3600;
+                string displayInfo = String.Format("{0:0.0}", remainingHours);
+                await ctx.CreateResponseAsync($"Can't claim daily yet! Come back in {displayInfo} hours! coalposter!");
             }
-            await ctx.CreateResponseAsync($"Can't claim daily yet! Come back tomorrow, coalposter!");
         }
 
         /*[SlashCommand("Balance", "Checks your balance")]
