@@ -7,7 +7,7 @@ namespace SuperMachoBot.Commands
     public class EconomyCommands : ApplicationCommandModule
     {
         public static string jsonPath = "";
-
+        Random rnd = new Random();
 
         #region Economy Commands
 
@@ -37,7 +37,7 @@ namespace SuperMachoBot.Commands
         public void CreateEconomyEntry(ulong userid, UserData data, ulong guildid)
         {
             // Add a new entry to the dictionary
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
 
             ulong newUserId = userid;
 
@@ -55,7 +55,11 @@ namespace SuperMachoBot.Commands
 
         public void CreateEconomyFile(ulong initialUserID, UserData initialUserData, ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            if (!Directory.Exists(@$"{jsonPath}/{guildid}/"))
+            {
+                Directory.CreateDirectory(@$"{jsonPath}/{guildid}/");
+            }
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             var dataDict = new Dictionary<ulong, UserData>();
             dataDict.Add(initialUserID, initialUserData);
             string newJson = JsonConvert.SerializeObject(dataDict, Formatting.Indented);
@@ -64,8 +68,12 @@ namespace SuperMachoBot.Commands
 
         public UserData GetEconomyEntry(ulong userid, ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             // Read the JSON file and deserialize it into a dictionary
+            if (!Directory.Exists(jsonFilePath))
+            {
+                Directory.CreateDirectory(@$"{jsonPath}/{guildid}/");
+            }
             if (!File.Exists(jsonFilePath))
             {
                 File.Create(jsonFilePath).Close();
@@ -101,7 +109,7 @@ namespace SuperMachoBot.Commands
 
         public Dictionary<ulong, UserData> GetEconomyEntries(ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             // Read the JSON file and deserialize it into a dictionary
             if (!File.Exists(jsonFilePath))
             {
@@ -121,7 +129,7 @@ namespace SuperMachoBot.Commands
 
         public void EditEconomyEntry(ulong userid, UserData data, ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             string json = File.ReadAllText(jsonFilePath);
             var userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
 
@@ -232,7 +240,6 @@ namespace SuperMachoBot.Commands
         [SlashCommand("Betflip", "Bet your money on a coin flip!")]
         public async Task BetFlipCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount, [Option("Choice", "Make your choice....")] BetflipChoice choice = BetflipChoice.heads)
         {
-            Random rnd = new Random();
             var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
             if (entry == null)
             {
@@ -310,7 +317,6 @@ namespace SuperMachoBot.Commands
         [SlashCommand("Wheel", "Spin the wheel of CobFortune™")]
         public async Task WheelCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
         {
-            Random rnd = new Random();
             var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
             if(entry == null)
             {
@@ -318,6 +324,7 @@ namespace SuperMachoBot.Commands
             }
             var roll = rnd.Next(0, 7);
             double multiplier = 1;
+            double[] multiplierTable = new double[] { -1.4, -0.8, -0.4, 1, 1.4, 1.8, 2.4 };
             if (amount <= 0)
             {
                 await ctx.CreateResponseAsync($"Invalid amount! Try again!");
@@ -327,30 +334,7 @@ namespace SuperMachoBot.Commands
                 await ctx.CreateResponseAsync($"YOU CANNOT AFFORD! TRY AGAIN!");
                 return;
             }
-            switch (roll)
-            {
-                case 0:
-                    multiplier = -1.4;
-                    break;
-                case 1:
-                    multiplier = -0.8;
-                    break;
-                case 2:
-                    multiplier = -0.4;
-                    break;
-                case 3:
-                    multiplier = 1;
-                    break;
-                case 4:
-                    multiplier = 1.4;
-                    break;
-                case 5:
-                    multiplier = 1.8;
-                    break;
-                case 6:
-                    multiplier = 2.4;
-                    break;
-            }
+            multiplier = multiplierTable[roll];
             var money = amount * multiplier - amount;
             EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + (long)money, lastDaily = entry.lastDaily }, ctx.Guild.Id);
             if(money < 0)

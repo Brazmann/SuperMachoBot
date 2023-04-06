@@ -1,8 +1,6 @@
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Newtonsoft.Json;
-using static System.Net.WebRequestMethods;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SuperMachoBot.Commands
 {
@@ -88,14 +86,65 @@ namespace SuperMachoBot.Commands
             await ctx.CreateResponseAsync(embed);
         }
 
+        [SlashCommand("OwnerSetup", "Allows the owner to setup/change their guilds SuperMachoBot settings.")]
+        public async Task OwnerSetupCommand(InteractionContext ctx, [Option("gemboard", "Channel to designate as gemboard.")] DiscordChannel dc,
+            [Option("gemamount", "Amount of gems required for a message to be added to gemboard.")] long gemAmount,
+            [Option("turboamount", "Amount of gem/coal required for a message to be added to gemboard as a gemerald/brimstone.")] long turboAmount,
+            [Option("gemEmoteId", "ID of emote to use as gem.")] string gemEmoteId,
+            [Option("coalEmoteId", "ID of emote to use as coal.")] string coalEmoteId)
+        {
+            if (ctx.Member.IsOwner)
+            {
+                if (!Directory.Exists(@$"{Program.databasePath}/{ctx.Guild.Id}/"))
+                {
+                    Directory.CreateDirectory(@$"{Program.databasePath}/{ctx.Guild.Id}/");
+                }
+                if (!File.Exists(@$"{Program.databasePath}/{ctx.Guild.Id}/Config.json"))
+                {
+                    File.Create(@$"{Program.databasePath}/{ctx.Guild.Id}/Config.json").Close();
+                }
+                if(!ulong.TryParse(gemEmoteId, out var gemEmoteParsed))
+                {
+                    await ctx.CreateResponseAsync("Invalid gem id! Try again!");
+                } else if (!ulong.TryParse(coalEmoteId, out var coalEmoteParsed))
+                {
+                    await ctx.CreateResponseAsync("Invalid coal id! Try again!");
+                } else {
+                    var config = new List<GuildConfig>();
+                    var configuration = new GuildConfig()
+                    {
+                        gemboardChannelId = dc.Id,
+                        gemAmount = gemAmount,
+                        turboAmount = turboAmount,
+                        gemEmoteId = gemEmoteParsed,
+                        coalEmoteId = coalEmoteParsed
+                    };
+                    if(Tools.General.CreateConfig(configuration, ctx.Guild.Id))
+                    {
+                        await ctx.CreateResponseAsync($"Configuration applied successfully!");
+                    } else
+                    {
+                        await ctx.CreateResponseAsync($"Configuration NOT applied successfully! Yell at bot developer! NOW!!");
+                    }
+                }
+            }
+            else
+            {
+                await ctx.CreateResponseAsync("You aren't owner. Stop trying to do owner stuff when you aren't an owner, peasant.");
+            }
+        }
+
         [SlashCommand("EmbeddingTest", "Sends a placeholder embed for gemboard.")]
         public async Task UserInfoCommand(InteractionContext ctx)
         {
-            var bruhgimus = new DiscordEmbedBuilder { Title = $"GEM ALERT!",
-                Description = $@"""https://twitter.com/cametek/status/1626024042254962688?t=qO5w7KG_5pAO2fBc0D3zOg&s=19""" + "\n" + "", 
-                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://images-ext-2.discordapp.net/external/eF0rSZ4LMUqftzoQmSqKq9P4-nGoyU7W7G74KSnLSls/https/pbs.twimg.com/ext_tw_video_thumb/1626022911822934016/pu/img/7yXC_-9lc9dWtC07.jpg"},
+            var bruhgimus = new DiscordEmbedBuilder
+            {
+                Title = $"GEM ALERT!",
+                Description = $@"""https://twitter.com/cametek/status/1626024042254962688?t=qO5w7KG_5pAO2fBc0D3zOg&s=19""" + "\n" + "",
+                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://images-ext-2.discordapp.net/external/eF0rSZ4LMUqftzoQmSqKq9P4-nGoyU7W7G74KSnLSls/https/pbs.twimg.com/ext_tw_video_thumb/1626022911822934016/pu/img/7yXC_-9lc9dWtC07.jpg" },
                 Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = ctx.User.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = "TestUser#0000" },
-                Color = DiscordColor.Red }.AddField("Gem:", "[link](https://discord.com/channels/977270567881298021/977270567881298024/1075763823740461056)").Build();
+                Color = DiscordColor.Red
+            }.AddField("Gem:", "[link](https://discord.com/channels/977270567881298021/977270567881298024/1075763823740461056)").Build();
             await ctx.CreateResponseAsync(bruhgimus);
         }
 

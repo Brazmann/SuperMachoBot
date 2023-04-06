@@ -166,6 +166,7 @@ namespace SuperMachoBot.Commands
                 }
             }
         }
+
         [Hidden]
         [Command("setactivity")]
         private async Task SetActivityCommand(CommandContext ctx)
