@@ -7,7 +7,6 @@ namespace SuperMachoBot.Commands
     public class SlashCommands : ApplicationCommandModule
     {
         public static string rootPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        #region General Commands
         [SlashCommand("Avatar", "Gets high resolution avatar of specified user.")]
         public async Task AvatarCommand(InteractionContext ctx, [Option("user", "Discord user to grab avatar from")] DiscordUser du)
         {

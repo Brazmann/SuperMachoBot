@@ -9,8 +9,6 @@ namespace SuperMachoBot.Commands
         public static string jsonPath = "";
         Random rnd = new Random();
 
-        #region Economy Commands
-
         /*[SlashCommand("Shutdown", "Kills the SuperMachoBot with a password.")]
         public async Task EconTestCommand(InteractionContext ctx, [Option("Password", "Enter it.")] string pass)
         {
