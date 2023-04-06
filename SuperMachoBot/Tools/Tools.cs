@@ -1,6 +1,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus;
 using System.Net;
+using Newtonsoft.Json;
 
 namespace SuperMachoBot.Tools
 {
@@ -43,6 +44,20 @@ namespace SuperMachoBot.Tools
                 return du.GetAvatarUrl(ImageFormat.Png);
             }
         }
+
+        public static bool CreateConfig (GuildConfig guildConfig, ulong guildId)
+        {
+            try {
+            var config = new List<GuildConfig>();
+            config.Add(guildConfig);
+            string newJson = JsonConvert.SerializeObject(config, Formatting.Indented);
+            File.WriteAllText(@$"{Program.databasePath}/{guildId}/Config.json", newJson);
+                return true;
+            } catch (Exception e)
+            {
+                Console.WriteLine($"Exception occured in config creation: {e.Message}");
+                return false;
+            }
     }
     class Economy
     {
@@ -53,4 +68,5 @@ namespace SuperMachoBot.Tools
     {
 
     }
+}
 }

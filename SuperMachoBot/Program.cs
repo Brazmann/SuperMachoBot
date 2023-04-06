@@ -1,12 +1,11 @@
 ﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
-using DSharpPlus.SlashCommands;
-using SuperMachoBot.Commands;
-using Newtonsoft.Json;
 using DSharpPlus.Entities;
-using Microsoft.Extensions.Logging;
-using System.Drawing;
-using Emzi0767.Utilities;
+using DSharpPlus.SlashCommands;
+using Newtonsoft.Json;
+using SuperMachoBot.Commands;
+using System.Data.SqlTypes;
+using System.Linq.Expressions;
 
 namespace SuperMachoBot
 {
@@ -16,7 +15,7 @@ namespace SuperMachoBot
         public static bool moneyCooldown = true;
         public static List<Config> configItems = new List<Config>();
         public static DiscordClient discord;
-        public static string pinnedPath = "";
+        public static string databasePath = "";
         static void Main(string[] args)
         {
             MainAsync().GetAwaiter().GetResult();
@@ -43,118 +42,88 @@ namespace SuperMachoBot
 
             };
 
-            pinnedPath = @$"{configItems[0].EconomyDatabasePath}Pinned.txt";
-            discord.MessageReactionAdded += async (s, e) =>
+            databasePath = configItems[0].EconomyDatabasePath;
+            discord.MessageReactionAdded += async (s, e) => //Spaghetti central.
             {
-                if (e.Emoji.Id == 1075778692959183049) //Gem
+                try //I don't think this is good practice. Fuck it.
                 {
-                    var message = await e.Channel.GetMessageAsync(e.Message.Id);
-                    if(message.Reactions[0].Count > 4 && !CheckPinID(message.Id))
+                    List<GuildConfig> config = JsonConvert.DeserializeObject<List<GuildConfig>>(File.ReadAllText(@$"{Program.databasePath}/{e.Guild.Id}/Config.json"));
+                    var bruh = config[0].coalEmoteId;
+                    if (e.Emoji.Id == config[0].gemEmoteId) //Gem
                     {
-                        string thumbnailURL = "";
-                        string desc = "";
-                        if (message.Embeds.Count > 0)
-                        {
-                            //thumbnailURL = bruh.Embeds[0].Image.Url.ToString();
-                        }
-                        if (message.Attachments.Count > 0)
-                        {
-                            thumbnailURL = message.Attachments[0].Url;
-                        }
-
-                        if(message.Content != "")
-                        {
-                            desc = $@"""{message.Content}""";
-                        }
-
-                        var bruhgimus = new DiscordEmbedBuilder
-                        {
-                            Title = $"GEM ALERT!",
-                            Description = desc + "\n" + "",
-                            ImageUrl = thumbnailURL,
-                            Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://media.discordapp.net/attachments/977270567881298024/1076252389637627904/850_-_SoyBooru.gif" },
-                            Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
-                            Color = DiscordColor.PhthaloBlue
-                        }.AddField("Gem:", $"[link]({message.JumpLink})").Build();
-                        await discord.SendMessageAsync(discord.GetChannelAsync(1075588362230042694).Result, bruhgimus);
-                        File.AppendAllText(pinnedPath, message.Id.ToString() + "\n");
-                    }
-                }
-                if (e.Emoji.Id == 1075778708629110885) //Coal
-                {
-                    var message = await e.Channel.GetMessageAsync(e.Message.Id);
-                    foreach (var reaction in message.Reactions)
-                    {
-                        if(reaction.Emoji.Id == 1075778708629110885)
-                        {
-                            if (reaction.Count > 4 && !CheckPinID(message.Id))
-                            {
-                                string thumbnailURL = "";
-                                string desc = "";
-                                if(message.Embeds.Count > 0)
-                                {
-                                    thumbnailURL = message.Embeds[0].Image.Url.ToString();
-                                }
-                                if (message.Attachments.Count > 0)
-                                {
-                                    thumbnailURL = message.Attachments[0].Url;
-                                }
-
-                                if (message.Content != "")
-                                {
-                                    desc = $@"""{message.Content}""";
-                                }
-
-                                var embed = new DiscordEmbedBuilder
-                                {
-                                    Title = $"COAL!!!! STINKY PISSCOAL ALERT!!!!",
-                                    Description = desc + "\n" + "",
-                                    ImageUrl = thumbnailURL,
-                                    Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1076252390157733958/862_-_SoyBooru.gif" },
-                                    Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
-                                    Color = DiscordColor.Black
-                                }.AddField("Coal:", $"[link]({message.JumpLink})").Build();
-                                await discord.SendMessageAsync(discord.GetChannelAsync(1075588362230042694).Result, embed);
-                                File.AppendAllText(pinnedPath, message.Id.ToString() + "\n");
-                            }   
-                        }
-                    }
-                }
-                bool debug = true;
-                if (e.Emoji.Id == 959642740277252136) //Delete
-                {
-                    var bruh = await e.Channel.GetMessageAsync(e.Message.Id);
-                    if(e.User.Id == 304033317513199617 && bruh.Author.Id == 305520963238494219) //Only let me delete messages from the bot, so it's not a le epic backdoor.
-                    {
-                        await bruh.DeleteAsync();
-                    }
-                }
-                if (e.Emoji.Id == 820033186008399903) //Debug
-                {
-                    var message = await e.Channel.GetMessageAsync(e.Message.Id);
-                    if (e.User.Id == 304033317513199617)
-                    {
+                        var message = await e.Channel.GetMessageAsync(e.Message.Id);
                         foreach (var reaction in message.Reactions)
                         {
-                            if (reaction.Emoji.Id == 820033186008399903)
+                            if (reaction.Emoji.Id == config[0].gemEmoteId)
                             {
-                                if (reaction.Count > 0)
+                                if (reaction.Count > config[0].gemAmount - 1 && !CheckPinID(message.Id, message.Channel.GuildId) && message.ChannelId != config[0].gemboardChannelId && !message.Channel.IsNSFW)
                                 {
-                                    string thumbnailURL = "";
+                                    string thumbnailURL = GetRelevantEmbedURL(message);
                                     string desc = "";
-                                    if (message.Embeds.Count > 0)
+
+                                    if (message.Content != "")
                                     {
-                                        thumbnailURL = message.Embeds[0].Thumbnail.Url.ToString();
-                                        var video = message.Embeds[0].Video;
-                                        if(video != null)
-                                        {
-                                            thumbnailURL = video.Url.ToString();
-                                        }
+                                        desc = $@"""{message.Content}""";
                                     }
-                                    if (message.Attachments.Count > 0)
+
+                                    var bruhgimus = new DiscordEmbedBuilder
                                     {
-                                        thumbnailURL = message.Attachments[0].Url;
+                                        Title = $"GEM ALERT!",
+                                        Description = desc + "\n" + "",
+                                        ImageUrl = thumbnailURL,
+                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://media.discordapp.net/attachments/977270567881298024/1076252389637627904/850_-_SoyBooru.gif" },
+                                        Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
+                                        Color = DiscordColor.PhthaloBlue
+                                    }.AddField("Gem:", $"[link]({message.JumpLink})").Build();
+                                    await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, bruhgimus);
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
+                                }
+                            }
+                        }
+                    }
+                    if (e.Emoji.Id == config[0].gemEmoteId) //GEMERALD!!
+                    {
+                        var message = await e.Channel.GetMessageAsync(e.Message.Id);
+                        foreach (var reaction in message.Reactions)
+                        {
+                            if (reaction.Emoji.Id == config[0].gemEmoteId)
+                            {
+                                if (reaction.Count > config[0].turboAmount - 1 && !CheckUltraPinID(message.Id, message.Channel.GuildId) && message.ChannelId != config[0].gemboardChannelId && !message.Channel.IsNSFW)
+                                {
+                                    string thumbnailURL = GetRelevantEmbedURL(message);
+                                    string desc = "";
+
+                                    if (message.Content != "")
+                                    {
+                                        desc = $@"""{message.Content}""";
                                     }
+
+                                    var bruhgimus = new DiscordEmbedBuilder
+                                    {
+                                        Title = $"GEMERALD ALERT! GEMERALD ALERT! {config[0].turboAmount}+ GEMS!",
+                                        Description = desc + "\n" + "",
+                                        ImageUrl = thumbnailURL,
+                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1093186592782422057/Gemerald.png" },
+                                        Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
+                                        Color = new DiscordColor("#66ff33")
+                                    }.AddField("Gemerald:", $"[link]({message.JumpLink})").Build();
+                                    await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, bruhgimus);
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/UltraPinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
+                                }
+                            }
+                        }
+                    }
+                    if (e.Emoji.Id == config[0].coalEmoteId) //Coal
+                    {
+                        var message = await e.Channel.GetMessageAsync(e.Message.Id);
+                        foreach (var reaction in message.Reactions)
+                        {
+                            if (reaction.Emoji.Id == config[0].coalEmoteId)
+                            {
+                                if (reaction.Count > config[0].gemAmount - 1 && !CheckPinID(message.Id, message.Channel.GuildId) && message.ChannelId != config[0].gemboardChannelId && !message.Channel.IsNSFW)
+                                {
+                                    string thumbnailURL = GetRelevantEmbedURL(message);
+                                    string desc = "";
 
                                     if (message.Content != "")
                                     {
@@ -163,19 +132,112 @@ namespace SuperMachoBot
 
                                     var embed = new DiscordEmbedBuilder
                                     {
-                                        Title = $"....Debug alert?",
+                                        Title = $"COAL!!!! STINKY PISSCOAL ALERT!!!!",
                                         Description = desc + "\n" + "",
                                         ImageUrl = thumbnailURL,
-                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1078813136649474128/pinson.gif" },
+                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1076252390157733958/862_-_SoyBooru.gif" },
                                         Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
                                         Color = DiscordColor.Black
-                                    }.AddField("Debug:", $"[link]({message.JumpLink})").Build();
-                                    await discord.SendMessageAsync(discord.GetChannelAsync(1075588362230042694).Result, embed);
-                                    //File.AppendAllText(pinnedPath, bruh.Id.ToString() + "\n");
+                                    }.AddField("Coal:", $"[link]({message.JumpLink})").Build();
+                                    await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, embed);
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                 }
                             }
                         }
                     }
+                    if (e.Emoji.Id == config[0].coalEmoteId) //BRIMSTONE!!
+                    {
+                        var message = await e.Channel.GetMessageAsync(e.Message.Id);
+                        foreach (var reaction in message.Reactions)
+                        {
+                            if (reaction.Emoji.Id == config[0].coalEmoteId)
+                            {
+                                if (reaction.Count > config[0].turboAmount - 1 && !CheckUltraPinID(message.Id, message.Channel.GuildId) && message.ChannelId != config[0].gemboardChannelId && !message.Channel.IsNSFW)
+                                {
+                                    string thumbnailURL = GetRelevantEmbedURL(message);
+                                    string desc = "";
+
+                                    if (message.Content != "")
+                                    {
+                                        desc = $@"""{message.Content}""";
+                                    }
+
+                                    var embed = new DiscordEmbedBuilder
+                                    {
+                                        Title = $"BRIMSTONE!!!! HELLISH TORTURECOAL ALERT!!!! {config[0].turboAmount}+ COALS!!!!",
+                                        Description = desc + "\n" + "",
+                                        ImageUrl = thumbnailURL,
+                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1076252390157733958/862_-_SoyBooru.gif" },
+                                        Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
+                                        Color = DiscordColor.Black
+                                    }.AddField("Brimstone:", $"[link]({message.JumpLink})").Build();
+                                    await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, embed);
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
+                                }
+                            }
+                        }
+                    }
+                    bool debug = true;
+                    if (e.Emoji.Id == 959642740277252136) //Delete
+                    {
+                        var bruha = await e.Channel.GetMessageAsync(e.Message.Id);
+                        if (e.User.Id == 304033317513199617 && bruha.Author.Id == 305520963238494219) //Only let me delete messages from the bot, so it's not a le epic backdoor.
+                        {
+                            await bruha.DeleteAsync();
+                        }
+                    }
+                    if (e.Emoji.Id == 820033186008399903) //Debug
+                    {
+                        var message = await e.Channel.GetMessageAsync(e.Message.Id);
+                        if (e.User.Id == 304033317513199617)
+                        {
+                            foreach (var reaction in message.Reactions)
+                            {
+                                if (reaction.Emoji.Id == 820033186008399903)
+                                {
+                                    if (reaction.Count > 0)
+                                    {
+                                        string thumbnailURL = "";
+                                        string desc = "";
+                                        if (message.Embeds.Count > 0)
+                                        {
+                                            thumbnailURL = message.Embeds[0].Thumbnail.Url.ToString();
+                                            var video = message.Embeds[0].Video;
+                                            if (video != null)
+                                            {
+                                                thumbnailURL = video.Url.ToString();
+                                            }
+                                        }
+                                        if (message.Attachments.Count > 0)
+                                        {
+                                            thumbnailURL = message.Attachments[0].Url;
+                                        }
+
+                                        if (message.Content != "")
+                                        {
+                                            desc = $@"""{message.Content}""";
+                                        }
+
+                                        var embed = new DiscordEmbedBuilder
+                                        {
+                                            Title = $"....Debug alert?",
+                                            Description = desc + "\n" + "",
+                                            ImageUrl = thumbnailURL,
+                                            Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1078813136649474128/pinson.gif" },
+                                            Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
+                                            Color = DiscordColor.Black
+                                        }.AddField("Debug:", $"[link]({message.JumpLink})").Build();
+                                        await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, embed);
+                                        //File.AppendAllText(pinnedPath, bruh.Id.ToString() + "\n");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+
                 }
             };
 
@@ -190,7 +252,6 @@ namespace SuperMachoBot
             EconomyCommands.jsonPath = configItems[0].EconomyDatabasePath;
 
             Console.WriteLine(EconomyCommands.jsonPath);
-            Console.WriteLine(pinnedPath);
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
@@ -202,16 +263,84 @@ namespace SuperMachoBot
             moneyCooldown = false;
         }
 
-        static bool CheckPinID(ulong messageid)
+        static bool CheckPinID(ulong messageid, ulong? guildid)
         {
-            foreach (var line in File.ReadAllLines(pinnedPath))
+            if (!Directory.Exists($"{databasePath}/{guildid}/"))
             {
-                if(line == messageid.ToString())
+                Directory.CreateDirectory(@$"{databasePath}/{guildid}/");
+            }
+            if (!File.Exists($"{databasePath}/{guildid}/Pinned.txt"))
+            {
+                File.Create(@$"{databasePath}/{guildid}/Pinned.txt").Close();
+            }
+            foreach (var line in File.ReadAllLines($"{databasePath}/{guildid}/Pinned.txt"))
+            {
+                if (line.Split(',')[0] == messageid.ToString())
                 {
                     return true;
                 }
             }
             return false;
+        }
+
+        static bool CheckUltraPinID(ulong messageid, ulong? guildid)
+        {
+            if (!Directory.Exists($"{databasePath}/{guildid}/"))
+            {
+                Directory.CreateDirectory(@$"{databasePath}/{guildid}/");
+            }
+            if (!File.Exists($"{databasePath}/{guildid}/UltraPinned.txt"))
+            {
+                File.Create(@$"{databasePath}/{guildid}/UltraPinned.txt").Close();
+            }
+            foreach (var line in File.ReadAllLines($"{databasePath}/{guildid}/UltraPinned.txt"))
+            {
+                if (line.Split(',')[0] == messageid.ToString())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static string GetRelevantEmbedURL(DiscordMessage message)
+        {
+            string thumbnailURL = "";
+            if (message.Embeds.Count > 0)
+            {
+                //thumbnailURL = message.Embeds[0].Image.Url.ToString();
+                var video = message.Embeds[0].Video;
+                var image = message.Embeds[0].Image;
+                //thumbnailURL = message.Embeds[0].Video != null ? message.Embeds[0].Video.Url.ToString() : message.Embeds[0].Image.Url.ToString();
+                if (video != null)
+                {
+                    var urlString = video.Url.ToString(); //Hate Tenor Hate Tenor Hate Tenor Hate Tenor Hate Tenor Hate Tenor RAGE!!!!
+                    bool isTenorUrl = urlString.StartsWith("https://media.tenor.com");
+                    if (isTenorUrl)
+                    {
+                        /*RANT: I HATE TENOR
+                         * IF YOU WANT TO ACTUALLY GET THE MP4 FILE, YOU HAVE TO CHANGE THE WEIRD FILETYPE IDENTIFIER LETTERS IN THE URL FROM 'AAAPo' to 'AAAAd'.
+                         * WHY WOULD YOU DO THIS TO ME YOU MOTHERFUCKERS? THIS SHIT LITERALLY BREAKS EMBED ON DISCORD MOBILE TOO!
+                         * Oh also Discord is a bit stupid and I have to change the end of the url from '.mp4' to '.gif' for it to autoplay correctly. Lol!
+                        */
+                        thumbnailURL = urlString.Replace("AAAPo", "AAAAd");
+                        thumbnailURL = thumbnailURL.Substring(0, thumbnailURL.Length - 3) + "gif";
+                    }
+                    else
+                    {
+                        thumbnailURL = video.Url.ToString();
+                    }
+                }
+                else
+                {
+                    thumbnailURL = image.Url.ToString();
+                }
+            }
+            else if (message.Attachments.Count > 0)
+            {
+                thumbnailURL = message.Attachments[0].Url;
+            }
+            return thumbnailURL;
         }
     }
     public class Config
@@ -219,5 +348,14 @@ namespace SuperMachoBot
         public string Token;
         public ulong OwnerID;
         public string EconomyDatabasePath;
+    }
+
+    public class GuildConfig
+    {
+        public ulong gemboardChannelId;
+        public long gemAmount;
+        public long turboAmount;
+        public ulong gemEmoteId;
+        public ulong coalEmoteId;
     }
 }

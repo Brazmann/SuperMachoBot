@@ -7,7 +7,7 @@ namespace SuperMachoBot.Commands
     public class EconomyCommands : ApplicationCommandModule
     {
         public static string jsonPath = "";
-
+        Random rnd = new Random();
 
         #region Economy Commands
 
@@ -37,7 +37,7 @@ namespace SuperMachoBot.Commands
         public void CreateEconomyEntry(ulong userid, UserData data, ulong guildid)
         {
             // Add a new entry to the dictionary
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
 
             ulong newUserId = userid;
 
@@ -55,7 +55,11 @@ namespace SuperMachoBot.Commands
 
         public void CreateEconomyFile(ulong initialUserID, UserData initialUserData, ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            if (!Directory.Exists(@$"{jsonPath}/{guildid}/"))
+            {
+                Directory.CreateDirectory(@$"{jsonPath}/{guildid}/");
+            }
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             var dataDict = new Dictionary<ulong, UserData>();
             dataDict.Add(initialUserID, initialUserData);
             string newJson = JsonConvert.SerializeObject(dataDict, Formatting.Indented);
@@ -64,8 +68,12 @@ namespace SuperMachoBot.Commands
 
         public UserData GetEconomyEntry(ulong userid, ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             // Read the JSON file and deserialize it into a dictionary
+            if (!Directory.Exists(jsonFilePath))
+            {
+                Directory.CreateDirectory(@$"{jsonPath}/{guildid}/");
+            }
             if (!File.Exists(jsonFilePath))
             {
                 File.Create(jsonFilePath).Close();
@@ -101,7 +109,7 @@ namespace SuperMachoBot.Commands
 
         public Dictionary<ulong, UserData> GetEconomyEntries(ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             // Read the JSON file and deserialize it into a dictionary
             if (!File.Exists(jsonFilePath))
             {
@@ -121,7 +129,7 @@ namespace SuperMachoBot.Commands
 
         public void EditEconomyEntry(ulong userid, UserData data, ulong guildid)
         {
-            string jsonFilePath = @$"{jsonPath}{guildid}.json";
+            string jsonFilePath = @$"{jsonPath}/{guildid}/Economy.json";
             string json = File.ReadAllText(jsonFilePath);
             var userDataDict = JsonConvert.DeserializeObject<Dictionary<ulong, UserData>>(json);
 
@@ -232,7 +240,6 @@ namespace SuperMachoBot.Commands
         [SlashCommand("Betflip", "Bet your money on a coin flip!")]
         public async Task BetFlipCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount, [Option("Choice", "Make your choice....")] BetflipChoice choice = BetflipChoice.heads)
         {
-            Random rnd = new Random();
             var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
             if (entry == null)
             {
@@ -310,7 +317,6 @@ namespace SuperMachoBot.Commands
         [SlashCommand("Wheel", "Spin the wheel of CobFortune™")]
         public async Task WheelCommand(InteractionContext ctx, [Option("Amount", "Amount to bet")] long amount)
         {
-            Random rnd = new Random();
             var entry = GetEconomyEntry(ctx.User.Id, ctx.Guild.Id);
             if(entry == null)
             {
@@ -318,6 +324,7 @@ namespace SuperMachoBot.Commands
             }
             var roll = rnd.Next(0, 7);
             double multiplier = 1;
+            double[] multiplierTable = new double[] { -1.4, -0.8, -0.4, 1, 1.4, 1.8, 2.4 };
             if (amount <= 0)
             {
                 await ctx.CreateResponseAsync($"Invalid amount! Try again!");
@@ -327,30 +334,7 @@ namespace SuperMachoBot.Commands
                 await ctx.CreateResponseAsync($"YOU CANNOT AFFORD! TRY AGAIN!");
                 return;
             }
-            switch (roll)
-            {
-                case 0:
-                    multiplier = -1.4;
-                    break;
-                case 1:
-                    multiplier = -0.8;
-                    break;
-                case 2:
-                    multiplier = -0.4;
-                    break;
-                case 3:
-                    multiplier = 1;
-                    break;
-                case 4:
-                    multiplier = 1.4;
-                    break;
-                case 5:
-                    multiplier = 1.8;
-                    break;
-                case 6:
-                    multiplier = 2.4;
-                    break;
-            }
+            multiplier = multiplierTable[roll];
             var money = amount * multiplier - amount;
             EditEconomyEntry(ctx.User.Id, new UserData { money = entry.money + (long)money, lastDaily = entry.lastDaily }, ctx.Guild.Id);
             if(money < 0)
@@ -383,312 +367,6 @@ namespace SuperMachoBot.Commands
                 await ctx.CreateResponseAsync($"Can't claim daily yet! Come back in {displayInfo} hours! coalposter!");
             }
         }
-
-        /*[SlashCommand("Balance", "Checks your balance")]
-        public async Task BalanceCommand(InteractionContext ctx, [Option("User", "User to check balance of")] DiscordUser du)
-        {
-            var entry = EconDatabaseChecker(du.Id, ctx.Guild.Id);
-            var entryParsed = entry[0].Split('|');
-            if (entry[0] == "noentry")
-            {
-                await ctx.CreateResponseAsync("No entry found! Generating one, please try again.");
-            }
-            await ctx.CreateResponseAsync($"{du.Username}: ${entryParsed[1]}");
-        }
-
-
-        [ContextMenu(ApplicationCommandType.UserContextMenu, "Check balance")]
-        public async Task BalanceMenuCommand(ContextMenuContext ctx)
-        {
-            var entry = EconDatabaseChecker(ctx.TargetUser.Id, ctx.Guild.Id);
-            var entryParsed = entry[0].Split('|');
-            if (entry[0] == "noentry")
-            {
-                await ctx.CreateResponseAsync("No entry found! Generating one, please try again.");
-            }
-            await ctx.CreateResponseAsync($"{ctx.TargetUser.Username}: ${entryParsed[1]}");
-        }
-
-        [SlashCommand("Daily", "Adds $100 to your balance")]
-        public async Task DailyCommand(InteractionContext ctx)
-        {
-            var path = $@"{rootPath}\EconomyDatabase\{ctx.Guild.Id}.csv";
-            var amount = 100;
-            var entry = EconDatabaseChecker(ctx.User.Id, ctx.Guild.Id);
-            var entryParsed = entry[0].Split('|');
-            var entryNumber = Int32.Parse(entry[1]);
-            Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            if (entryParsed[2] == "none")
-            {
-                string[] lines = File.ReadAllLines(path);
-                lines[entryNumber - 1] = $"{entryParsed[0]}|{entryParsed[1]}|{unixTimestamp}|";
-                WriteAllLinesBetter(path, lines);
-                AddSubtractUserMoney(ctx.User.Id, ctx.Guild.Id, amount);
-                await ctx.CreateResponseAsync("First daily! Come back in 24 hours!");
-            }
-            else
-            {
-                Int32 secondsSinceLastDaily = unixTimestamp - Convert.ToInt32(entryParsed[2]);
-                if (secondsSinceLastDaily > 86400) //Check if a day has passed
-                {
-                    string[] lines = File.ReadAllLines(path);
-                    lines[entryNumber - 1] = $"{entryParsed[0]}|{entryParsed[1]}|{unixTimestamp}|";
-                    WriteAllLinesBetter(path, lines);
-                    AddSubtractUserMoney(ctx.User.Id, ctx.Guild.Id, amount);
-                    await ctx.CreateResponseAsync("Daily claimed! Come back in 24 hours!");
-                }
-                else if (secondsSinceLastDaily < 86400)
-                {
-                    var secondsUntilClaim = 86400 - secondsSinceLastDaily;
-                    await ctx.CreateResponseAsync($"Daily already claimed! Come back in {secondsUntilClaim / 3600} hours!");
-                }
-            }
-        }
-
-        [SlashCommand("Transfer", "Transfer your money to another user.")]
-        public async Task TransferCommand(InteractionContext ctx, [Option("Amount", "Amount to transfer")] long amount, [Option("User", "User to transfer money to")] DiscordUser du)
-        {
-            if (amount < 0)
-            {
-                await ctx.CreateResponseAsync("Negative amount detected! Sorry, robbery has not been implemented yet!");
-            }
-            else
-            {
-                AddSubtractUserMoney(ctx.User.Id, ctx.Guild.Id, -amount);
-                AddSubtractUserMoney(du.Id, ctx.Guild.Id, amount);
-                await ctx.CreateResponseAsync($"${amount} transferred from {ctx.User.Mention} to {du.Mention}");
-            }
-        }
-
-        [SlashCommand("Twash", "The.")]
-        public async Task TwashCommand(InteractionContext ctx, [Option("Year", "Age")]long age)
-        {
-            string message = $"{age} year old Twash be like: anyone under {age + 4} is an infant to me now.";
-            await ctx.CreateResponseAsync(message);
-        }
-
-        [SlashCommand("Betflip", "Heads or Tails coinflip!")]
-        public async Task BetflipCommand(InteractionContext ctx, [Option("Choice", "Heads or Tails? H or T? Choose your path wisely.")] string choice, [Option("Amount", "Real: (typing 'All' currently doesn't work, do it manually.)")] long betAmount)
-        {
-            var uid = ctx.User.Id;
-            var gid = ctx.Guild.Id;
-            var entry = EconDatabaseChecker(ctx.User.Id, ctx.Guild.Id);
-            var entryParsed = entry[0].Split('|');
-            var playerMoney = Convert.ToInt64(entryParsed[1]);
-            var moneyEarned = 0;
-            if (betAmount > playerMoney)
-            {
-                await ctx.CreateResponseAsync("You do not have enough money!");
-            }
-            else
-            {
-                int flip = rnd.Next(1, 3); // 1 = heads, 2 = tails
-                string decision = "";
-                string headsURL = "https://cdn.discordapp.com/attachments/978411926222684220/1006493578186469376/domcoinheads.png";
-                string tailsURL = "https://cdn.discordapp.com/attachments/978411926222684220/1006493587342622730/domcointails.png";
-                switch (choice.ToLower())
-                {
-                    case "h":
-                    case "head":
-                    case "heads":
-                        decision = "heads";
-                        break;
-                    case "t":
-                    case "tail":
-                    case "tails":
-                        decision = "tails";
-                        break;
-                }
-                if (decision.ToLower() == "heads")
-                {
-                    switch (flip)
-                    {
-                        case 1:
-                            await ctx.CreateResponseAsync(embed: new DiscordEmbedBuilder { Title = $"Heads! You win ${betAmount}!", ImageUrl = headsURL }.Build());
-                            AddSubtractUserMoney(uid, gid, betAmount);
-                            break;
-                        case 2:
-                            await ctx.CreateResponseAsync(embed: new DiscordEmbedBuilder { Title = $"Tails! You lose ${betAmount}!", ImageUrl = tailsURL }.Build());
-                            AddSubtractUserMoney(uid, gid, -betAmount);
-                            break;
-                    }
-                }
-                if (decision.ToLower() == "tails")
-                {
-                    switch (flip)
-                    {
-                        case 1:
-                            await ctx.CreateResponseAsync("Heads! You lose!");
-                            await ctx.CreateResponseAsync(embed: new DiscordEmbedBuilder { Title = $"Heads! You lose ${betAmount}!", ImageUrl = headsURL }.Build());
-                            AddSubtractUserMoney(uid, gid, -betAmount);
-                            break;
-                        case 2:
-                            await ctx.CreateResponseAsync(embed: new DiscordEmbedBuilder { Title = $"Tails! You win ${betAmount}!", ImageUrl = tailsURL }.Build());
-                            AddSubtractUserMoney(uid, gid, betAmount);
-                            break;
-                    }
-                }
-            }
-        }
-
-
-        [SlashCommand("Wheel", "Roll the wheel of Macho Fortune!")]
-        public async Task WheelCommand(InteractionContext ctx, [Option("Amount", "Real: (typing 'All' currently doesn't work, do it manually.)")] long betAmount)
-        {
-            if (betAmount < 0)
-            {
-                await ctx.CreateResponseAsync("Negative numbers are not allowed!");
-            }
-            else
-            {
-                var entry = EconDatabaseChecker(ctx.User.Id, ctx.Guild.Id);
-                var entryParsed = entry[0].Split('|');
-                double playerMoney = Convert.ToDouble(entryParsed[1]);
-                double moneyEarned = 0;
-                if (betAmount > playerMoney)
-                {
-                    await ctx.CreateResponseAsync("You do not have enough money!");
-                }
-                else
-                {
-                    var roll = rnd.Next(1, 8);
-                    double multiplier = 1;
-                    bool shit = false;
-                    switch (roll)
-                    {
-                        case 1:
-                            multiplier = 2.4;
-                            shit = true;
-                            break;
-                        case 2:
-                            multiplier = 1.8;
-                            shit = true;
-                            break;
-                        case 3:
-                            multiplier = 1.4;
-                            shit = true;
-                            break;
-                        case 4:
-                            multiplier = 0;
-                            break;
-                        case 5:
-                            multiplier = 1.4;
-                            break;
-                        case 6:
-                            multiplier = 1.8;
-                            break;
-                        case 7:
-                            multiplier = 2.4;
-                            break;
-                    }
-                    if (shit == true)
-                    {
-                        moneyEarned = betAmount * multiplier;
-                        AddSubtractUserMoney(ctx.User.Id, ctx.Guild.Id, -Convert.ToInt64(moneyEarned));
-                        await ctx.CreateResponseAsync($"Money multiplied by -{multiplier}x, lost ${moneyEarned}! Sad!");
-                    }
-                    else
-                    {
-                        moneyEarned = betAmount * multiplier;
-                        AddSubtractUserMoney(ctx.User.Id, ctx.Guild.Id, Convert.ToInt64(moneyEarned));
-                        await ctx.CreateResponseAsync($"Money multiplied by {multiplier}x, ${moneyEarned}!");
-                    }
-                }
-            }
-        }
-        #endregion
-        #region Economy Tools (I really need to stuff this into the library)
-        public void AddSubtractUserMoney(ulong userID, ulong guildID, long amount)
-        {
-            var entry = EconDatabaseChecker(userID, guildID);
-            var path = $@"{rootPath}\EconomyDatabase\{guildID}.csv";
-            var entryNumber = Int32.Parse(entry[1]);
-            var entryParsed = entry[0].Split('|');
-            var currentAmount = entryParsed[1];
-            long finalAmount = Convert.ToInt64(currentAmount) + amount;
-            string[] lines = File.ReadAllLines(path);
-            lines[entryNumber - 1] = $"{userID}|{finalAmount.ToString()}|{entryParsed[2]}|";
-            WriteAllLinesBetter(path, lines);
-        }
-        //Thank you microsoft for requiring a rewrite of your entire method just to not have it add an extra new line at the end of a file. :tf:
-        public static void WriteAllLinesBetter(string path, params string[] lines)
-        {
-            if (path == null)
-                throw new ArgumentNullException("path");
-            if (lines == null)
-                throw new ArgumentNullException("lines");
-
-            using (var stream = File.OpenWrite(path))
-            using (StreamWriter writer = new StreamWriter(stream))
-            {
-                if (lines.Length > 0)
-                {
-                    for (int i = 0; i < lines.Length - 1; i++)
-                    {
-                        writer.WriteLine(lines[i]);
-                    }
-                    writer.Write(lines[lines.Length - 1]);
-                }
-            }
-        }
-
-
-
-
-        public void MultiplyUserMoney(ulong userID, ulong guildID, float multiplier)
-        {
-            var entry = EconDatabaseChecker(userID, guildID);
-            var path = $@"{rootPath}\EconomyDatabase\{guildID}.csv";
-            var entryNumber = Int32.Parse(entry[1]);
-            var entryParsed = entry[0].Split('|');
-            var currentAmount = entryParsed[1];
-            float finalAmount = float.Parse(currentAmount) * multiplier;
-            string[] lines = File.ReadAllLines(path);
-            lines[entryNumber - 1] = $"{userID}|{finalAmount.ToString()}";
-            WriteAllLinesBetter(path, lines);
-        }
-
-
-
-
-
-        /// <summary>
-        /// Finds the economy database entry for the specified UserID, or creates a new entry for the server/user if an entry for one is missing.
-        /// </summary>
-        /// <returns>
-        /// The contents, and line number of the entry if found, in a string array.
-        /// </returns>
-        public static string[] EconDatabaseChecker(ulong userID, ulong guildID)
-        {
-            int lineCount = 0;
-            string[] entry = { "noentry", "bingus" };
-            var path = $@"{rootPath}\EconomyDatabase\{guildID}.csv";
-            if (File.Exists(path) == false)
-            {
-                string entryToCreate = $"{userID}|100|none";
-                File.AppendAllText(path, entryToCreate);
-            }
-
-            foreach (var line in File.ReadAllLines(path))
-            {
-                var entryparsed = line.Split('|');
-                lineCount++;
-                if (entryparsed[0] == userID.ToString())
-                {
-                    entry[0] = line; //Contents of entry line
-                    entry[1] = $"{lineCount}"; //Number of line in .csv file
-                    break;
-                }
-            }
-            if (entry[0] == "noentry") //If after the file has been searched, no entry has been found, create a new one and stuff it in the 'entry' variable
-            {
-                string entryToCreate = $"{userID}|100|none";
-                File.AppendAllText(path, Environment.NewLine + entryToCreate);
-                return entry;
-            }
-            return entry;
-        }*/
-        #endregion
     }
 
     public class UserData
