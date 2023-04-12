@@ -167,12 +167,12 @@ namespace SuperMachoBot
                                         Title = $"BRIMSTONE!!!! HELLISH TORTURECOAL ALERT!!!! {config[0].turboAmount}+ COALS!!!!",
                                         Description = desc + "\n" + "",
                                         ImageUrl = thumbnailURL,
-                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1076252390157733958/862_-_SoyBooru.gif" },
+                                        Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://cdn.discordapp.com/attachments/977270567881298024/1095576471235465266/Brimstone.png" },
                                         Footer = new DiscordEmbedBuilder.EmbedFooter { IconUrl = message.Author.GetAvatarUrl(DSharpPlus.ImageFormat.Png, 256), Text = $"{message.Author.Username}#{message.Author.Discriminator}" },
-                                        Color = DiscordColor.Black
+                                        Color = DiscordColor.DarkRed
                                     }.AddField("Brimstone:", $"[link]({message.JumpLink})").Build();
                                     await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, embed);
-                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/UltraPinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                 }
                             }
                         }
