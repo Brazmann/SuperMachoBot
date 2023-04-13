@@ -43,7 +43,7 @@ namespace SuperMachoBot
             };
 
             databasePath = configItems[0].EconomyDatabasePath;
-            discord.MessageReactionAdded += async (s, e) => //Spaghetti central.
+            discord.MessageReactionAdded += async (s, e) =>
             {
                 try //I don't think this is good practice. Fuck it.
                 {
@@ -60,7 +60,7 @@ namespace SuperMachoBot
                                 {
                                     string thumbnailURL = GetRelevantEmbedURL(message);
                                     string desc = "";
-
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                     if (message.Content != "")
                                     {
                                         desc = $@"""{message.Content}""";
@@ -76,7 +76,6 @@ namespace SuperMachoBot
                                         Color = DiscordColor.PhthaloBlue
                                     }.AddField("Gem:", $"[link]({message.JumpLink})").Build();
                                     await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, bruhgimus);
-                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                 }
                             }
                         }
@@ -92,7 +91,7 @@ namespace SuperMachoBot
                                 {
                                     string thumbnailURL = GetRelevantEmbedURL(message);
                                     string desc = "";
-
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/UltraPinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                     if (message.Content != "")
                                     {
                                         desc = $@"""{message.Content}""";
@@ -108,7 +107,6 @@ namespace SuperMachoBot
                                         Color = new DiscordColor("#66ff33")
                                     }.AddField("Gemerald:", $"[link]({message.JumpLink})").Build();
                                     await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, bruhgimus);
-                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/UltraPinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                 }
                             }
                         }
@@ -125,6 +123,8 @@ namespace SuperMachoBot
                                     string thumbnailURL = GetRelevantEmbedURL(message);
                                     string desc = "";
 
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
+
                                     if (message.Content != "")
                                     {
                                         desc = $@"""{message.Content}""";
@@ -140,7 +140,6 @@ namespace SuperMachoBot
                                         Color = DiscordColor.Black
                                     }.AddField("Coal:", $"[link]({message.JumpLink})").Build();
                                     await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, embed);
-                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/Pinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                 }
                             }
                         }
@@ -157,6 +156,8 @@ namespace SuperMachoBot
                                     string thumbnailURL = GetRelevantEmbedURL(message);
                                     string desc = "";
 
+                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/UltraPinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
+
                                     if (message.Content != "")
                                     {
                                         desc = $@"""{message.Content}""";
@@ -172,7 +173,6 @@ namespace SuperMachoBot
                                         Color = DiscordColor.DarkRed
                                     }.AddField("Brimstone:", $"[link]({message.JumpLink})").Build();
                                     await discord.SendMessageAsync(discord.GetChannelAsync(config[0].gemboardChannelId).Result, embed);
-                                    File.AppendAllText($"{databasePath}/{message.Channel.GuildId}/UltraPinned.txt", message.Id.ToString() + $",{message.Author.Id}\n");
                                 }
                             }
                         }
