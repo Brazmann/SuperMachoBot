@@ -134,7 +134,7 @@ namespace SuperMachoBot.Commands
         }
 
         [SlashCommand("EmbeddingTest", "Sends a placeholder embed for gemboard.")]
-        public async Task UserInfoCommand(InteractionContext ctx)
+        public async Task EmbeddingTestCommand(InteractionContext ctx)
         {
             var bruhgimus = new DiscordEmbedBuilder
             {
@@ -146,6 +146,15 @@ namespace SuperMachoBot.Commands
             }.AddField("Gem:", "[link](https://discord.com/channels/977270567881298021/977270567881298024/1075763823740461056)").Build();
             await ctx.CreateResponseAsync(bruhgimus);
         }
+
+        [SlashCommand("PinCount", "Tells you how many messages from a specified user have been pinned.")]
+        public async Task UserInfoCommand(InteractionContext ctx)
+        {
+            var bruh = Tools.General.GetUserPinCount(ctx.Member.Id, ctx.Guild.Id);
+            await ctx.CreateResponseAsync($"Pins: {bruh.Item1} Ultra Pins: {bruh.Item2}");
+        }
+
+
     }
 
     public class PlayerData

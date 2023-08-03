@@ -14,7 +14,8 @@
     <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-00009" />
     <PackageReference Include="DSharpPlus.Lavalink" Version="5.0.0-nightly-00009" />
     <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-00009" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3-beta1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OpenAI" Version="1.7.2" />
 	<Protobuf Include="**/*.proto" />
   </ItemGroup>
 

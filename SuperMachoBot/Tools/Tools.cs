@@ -58,7 +58,42 @@ namespace SuperMachoBot.Tools
                 Console.WriteLine($"Exception occured in config creation: {e.Message}");
                 return false;
             }
-    }
+        }
+
+        /// <summary>
+        /// Checks the amount of messages pinned from a specific user in a guild.
+        /// </summary>
+        /// <returns>
+        /// First: Amount of standard pins. Second: Amount of ultra pins.
+        /// </returns>
+        public static (int, int) GetUserPinCount(ulong userid, ulong guildid)
+        {   //There fucking HAS to be a better way to do this.
+            var pinPath = $"{Program.databasePath}/{guildid}/Pinned.txt";
+            var pinCsv = File.ReadAllLines(pinPath);
+            var ultraPath = $"{Program.databasePath}/{guildid}/UltraPinned.txt";
+            var ultraCsv = File.ReadAllLines(ultraPath);
+            int pins = 0;
+            int ultraPins = 0;
+            foreach(var line in pinCsv)
+            {
+                var entry = line.Split(',');
+                ulong.TryParse(entry[1], out var pinUserid);
+                if (pinUserid != null && pinUserid == userid)
+                {
+                    pins++;
+                }
+            }
+            foreach (var line in ultraCsv)
+            {
+                var entry = line.Split(',');
+                ulong.TryParse(entry[1], out var pinUserid);
+                if (pinUserid != null && pinUserid == userid)
+                {
+                    ultraPins++;
+                }
+            }
+            return (pins, ultraPins);
+        }
     class Economy
     {
 
